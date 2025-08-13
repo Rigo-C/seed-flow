@@ -1,0 +1,263 @@
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ArrowRight, Plus, Building2, Package } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+import { FormState } from "@/pages/ProductFlow";
+
+interface BrandProductLineTabProps {
+  formState: FormState;
+  updateFormState: (updates: Partial<FormState>) => void;
+  onComplete: () => void;
+}
+
+export const BrandProductLineTab = ({ formState, updateFormState, onComplete }: BrandProductLineTabProps) => {
+  const [brandData, setBrandData] = useState({
+    name: "",
+    website: "",
+    contactEmail: ""
+  });
+  
+  const [productLineData, setProductLineData] = useState({
+    name: "",
+    description: "",
+    targetSpecies: ["dog"] as string[]
+  });
+  
+  const [isLoading, setIsLoading] = useState(false);
+  const [showNewBrandForm, setShowNewBrandForm] = useState(false);
+
+  const speciesOptions = [
+    { id: "dog", label: "Dog" },
+    { id: "cat", label: "Cat" },
+    { id: "bird", label: "Bird" },
+    { id: "rabbit", label: "Rabbit" },
+    { id: "fish", label: "Fish" }
+  ];
+
+  const handleSpeciesChange = (speciesId: string, checked: boolean) => {
+    setProductLineData(prev => ({
+      ...prev,
+      targetSpecies: checked 
+        ? [...prev.targetSpecies, speciesId]
+        : prev.targetSpecies.filter(id => id !== speciesId)
+    }));
+  };
+
+  const handleSubmit = async () => {
+    setIsLoading(true);
+    try {
+      let brandId = formState.brandId;
+
+      // Create brand if new
+      if (showNewBrandForm) {
+        const { data: brand, error: brandError } = await supabase
+          .from("brands")
+          .insert(brandData)
+          .select("id")
+          .single();
+
+        if (brandError) throw brandError;
+        brandId = brand.id;
+      }
+
+      // Create product line
+      const { data: productLine, error: productLineError } = await supabase
+        .from("product_lines")
+        .insert({
+          ...productLineData,
+          brand_id: brandId
+        })
+        .select("id")
+        .single();
+
+      if (productLineError) throw productLineError;
+
+      updateFormState({
+        brandId,
+        productLineId: productLine.id
+      });
+
+      toast({
+        title: "Success!",
+        description: "Brand and product line created successfully."
+      });
+
+      onComplete();
+    } catch (error) {
+      console.error("Error:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to create brand and product line."
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const isValid = productLineData.name && productLineData.targetSpecies.length > 0 && 
+    (formState.brandId || (showNewBrandForm && brandData.name));
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h2 className="text-2xl font-bold mb-2">Brand & Product Line</h2>
+        <p className="text-muted-foreground">
+          Start by setting up the brand and product line information.
+        </p>
+      </div>
+
+      {/* Brand Selection */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Building2 className="h-5 w-5" />
+            Brand Information
+          </CardTitle>
+          <CardDescription>
+            Select an existing brand or create a new one.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-2">
+            <Button
+              variant={!showNewBrandForm ? "default" : "outline"}
+              onClick={() => setShowNewBrandForm(false)}
+              size="sm"
+            >
+              Select Existing
+            </Button>
+            <Button
+              variant={showNewBrandForm ? "default" : "outline"}
+              onClick={() => setShowNewBrandForm(true)}
+              size="sm"
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Create New
+            </Button>
+          </div>
+
+          {showNewBrandForm ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="brandName">Brand Name *</Label>
+                <Input
+                  id="brandName"
+                  value={brandData.name}
+                  onChange={(e) => setBrandData(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Enter brand name"
+                />
+              </div>
+              <div>
+                <Label htmlFor="brandWebsite">Website</Label>
+                <Input
+                  id="brandWebsite"
+                  value={brandData.website}
+                  onChange={(e) => setBrandData(prev => ({ ...prev, website: e.target.value }))}
+                  placeholder="https://example.com"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <Label htmlFor="brandEmail">Contact Email</Label>
+                <Input
+                  id="brandEmail"
+                  type="email"
+                  value={brandData.contactEmail}
+                  onChange={(e) => setBrandData(prev => ({ ...prev, contactEmail: e.target.value }))}
+                  placeholder="contact@brand.com"
+                />
+              </div>
+            </div>
+          ) : (
+            <div>
+              <Label htmlFor="existingBrand">Select Brand</Label>
+              <Select onValueChange={(value) => updateFormState({ brandId: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose an existing brand" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sample-brand">Sample Brand</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Product Line */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Package className="h-5 w-5" />
+            Product Line Details
+          </CardTitle>
+          <CardDescription>
+            Define the main product line information.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="productLineName">Product Line Name *</Label>
+              <Input
+                id="productLineName"
+                value={productLineData.name}
+                onChange={(e) => setProductLineData(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="Premium Dog Food Series"
+              />
+            </div>
+            <div>
+              <Label>Target Species *</Label>
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                {speciesOptions.map((species) => (
+                  <div key={species.id} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={species.id}
+                      checked={productLineData.targetSpecies.includes(species.id)}
+                      onCheckedChange={(checked) => handleSpeciesChange(species.id, checked as boolean)}
+                    />
+                    <Label htmlFor={species.id} className="text-sm">
+                      {species.label}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          
+          <div>
+            <Label htmlFor="productLineDescription">Description</Label>
+            <Textarea
+              id="productLineDescription"
+              value={productLineData.description}
+              onChange={(e) => setProductLineData(prev => ({ ...prev, description: e.target.value }))}
+              placeholder="Describe the product line..."
+              rows={3}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Actions */}
+      <div className="flex justify-end">
+        <Button
+          onClick={handleSubmit}
+          disabled={!isValid || isLoading}
+          variant="premium"
+          size="lg"
+        >
+          {isLoading ? "Creating..." : "Continue to Variants"}
+          <ArrowRight className="h-4 w-4 ml-2" />
+        </Button>
+      </div>
+    </div>
+  );
+};
