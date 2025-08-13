@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, Plus, X, AlertTriangle, Leaf, Search } from "lucide-react";
@@ -41,6 +42,7 @@ export const IngredientsTab = ({ formState, updateFormState, onComplete }: Ingre
   const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
+  const [bulkIngredients, setBulkIngredients] = useState("");
 
   useEffect(() => {
     loadVariants();
@@ -148,6 +150,87 @@ export const IngredientsTab = ({ formState, updateFormState, onComplete }: Ingre
         ? { ...vi, ingredientIds: vi.ingredientIds.filter(id => id !== ingredientId) }
         : vi
     ));
+  };
+
+  const processBulkIngredients = async () => {
+    if (!bulkIngredients.trim() || !currentVariant) return;
+
+    try {
+      setIsLoading(true);
+      const ingredientNames = bulkIngredients
+        .split(',')
+        .map(name => name.trim())
+        .filter(name => name.length > 0);
+
+      if (ingredientNames.length === 0) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Please enter some ingredients separated by commas."
+        });
+        return;
+      }
+
+      // Check which ingredients already exist
+      const { data: existingIngredients, error: searchError } = await supabase
+        .from("ingredients")
+        .select("id, name")
+        .in("name", ingredientNames);
+
+      if (searchError) throw searchError;
+
+      const existingNames = new Set(existingIngredients?.map(ing => ing.name.toLowerCase()) || []);
+      const newIngredientNames = ingredientNames.filter(name => 
+        !existingNames.has(name.toLowerCase())
+      );
+
+      // Create new ingredients that don't exist
+      let newIngredients: any[] = [];
+      if (newIngredientNames.length > 0) {
+        const { data: createdIngredients, error: createError } = await supabase
+          .from("ingredients")
+          .insert(
+            newIngredientNames.map(name => ({
+              name: name,
+              is_toxic: false,
+              is_controversial: false,
+              tags: []
+            }))
+          )
+          .select("id, name");
+
+        if (createError) throw createError;
+        newIngredients = createdIngredients || [];
+      }
+
+      // Combine existing and new ingredients
+      const allIngredients = [...(existingIngredients || []), ...newIngredients];
+      
+      // Add all ingredients to current variant
+      const newIngredientIds = allIngredients.map(ing => ing.id);
+      setVariantIngredients(prev => prev.map(vi => 
+        vi.variantId === currentVariant.id
+          ? { ...vi, ingredientIds: [...new Set([...vi.ingredientIds, ...newIngredientIds])] }
+          : vi
+      ));
+
+      setBulkIngredients("");
+      
+      toast({
+        title: "Success!",
+        description: `Added ${allIngredients.length} ingredients to ${currentVariant.name}. ${newIngredients.length} new ingredients were created.`
+      });
+
+    } catch (error) {
+      console.error("Error processing bulk ingredients:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to process bulk ingredients."
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const getIngredientById = async (id: string): Promise<Ingredient | null> => {
@@ -346,6 +429,29 @@ export const IngredientsTab = ({ formState, updateFormState, onComplete }: Ingre
                   Create "{ingredientSearch}"
                 </Button>
               )}
+
+              <div className="border-t pt-4">
+                <Label htmlFor="bulk-ingredients">Bulk Add Ingredients</Label>
+                <Textarea
+                  id="bulk-ingredients"
+                  value={bulkIngredients}
+                  onChange={(e) => setBulkIngredients(e.target.value)}
+                  placeholder="Paste comma-separated ingredients here (e.g., chicken, rice, carrots, peas)"
+                  className="mt-1"
+                  rows={4}
+                />
+                {bulkIngredients.trim() && (
+                  <Button
+                    variant="default"
+                    className="w-full mt-2"
+                    onClick={processBulkIngredients}
+                    disabled={isLoading}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    {isLoading ? "Processing..." : "Add All Ingredients"}
+                  </Button>
+                )}
+              </div>
             </CardContent>
           </Card>
 
