@@ -240,7 +240,7 @@ export const VariantOptionsTab = ({ formState, updateFormState, onComplete }: Va
                             onValueChange={(value) => updateAssignment(variant.id, option.id, value)}
                           >
                             <SelectTrigger className="mt-1">
-                              <SelectValue placeholder={`Select ${option.label.toLowerCase()}`} />
+                              <SelectValue placeholder={`Select ${(option.label || option.name || 'option').toLowerCase()}`} />
                             </SelectTrigger>
                             <SelectContent>
                               {option.values.map(value => (
