@@ -129,13 +129,24 @@ export const VariantOptionsTab = ({ formState, updateFormState, onComplete }: Va
     try {
       const validAssignments = assignments.filter(a => a.valueId);
       
+      // Allow skipping if using existing brand/product line and no assignments made
       if (validAssignments.length === 0) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Please assign at least one option value to a variant."
-        });
-        return;
+        if (!formState.isNewProductLine) {
+          // Skip variant option assignments for existing product lines
+          toast({
+            title: "Success!",
+            description: "Proceeding without variant option assignments."
+          });
+          onComplete();
+          return;
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Please assign at least one option value to a variant."
+          });
+          return;
+        }
       }
 
       const insertData = validAssignments.map(assignment => ({
@@ -167,7 +178,8 @@ export const VariantOptionsTab = ({ formState, updateFormState, onComplete }: Va
     }
   };
 
-  const isValid = assignments.some(a => a.valueId);
+  // Allow proceeding if using existing product line or if assignments are made
+  const isValid = !formState.isNewProductLine || assignments.some(a => a.valueId);
 
   if (isLoadingData) {
     return (
@@ -187,6 +199,7 @@ export const VariantOptionsTab = ({ formState, updateFormState, onComplete }: Va
         <h2 className="text-2xl font-bold mb-2">Variant Options</h2>
         <p className="text-muted-foreground">
           Assign specific option values to each product variant.
+          {!formState.isNewProductLine && " You can skip this step if just adding ingredients to existing variants."}
         </p>
       </div>
 
@@ -252,16 +265,33 @@ export const VariantOptionsTab = ({ formState, updateFormState, onComplete }: Va
       </Card>
 
       {/* Actions */}
-      <div className="flex justify-end">
-        <Button
-          onClick={handleSubmit}
-          disabled={!isValid || isLoading}
-          variant="premium"
-          size="lg"
-        >
-          {isLoading ? "Saving..." : "Continue to Ingredients"}
-          <ArrowRight className="h-4 w-4 ml-2" />
-        </Button>
+      <div className="flex justify-between items-center">
+        {!formState.isNewProductLine && (
+          <p className="text-sm text-muted-foreground">
+            Skip variant options if only adding ingredients to existing variants
+          </p>
+        )}
+        <div className="flex gap-3 ml-auto">
+          {!formState.isNewProductLine && (
+            <Button
+              onClick={onComplete}
+              variant="outline"
+              size="lg"
+            >
+              Skip to Ingredients
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+          )}
+          <Button
+            onClick={handleSubmit}
+            disabled={!isValid || isLoading}
+            variant="premium"
+            size="lg"
+          >
+            {isLoading ? "Saving..." : "Continue to Ingredients"}
+            <ArrowRight className="h-4 w-4 ml-2" />
+          </Button>
+        </div>
       </div>
     </div>
   );
