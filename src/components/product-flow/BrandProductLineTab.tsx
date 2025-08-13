@@ -319,7 +319,7 @@ export const BrandProductLineTab = ({ formState, updateFormState, onComplete }: 
               </div>
             </>
           ) : (
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="existingProductLine">Select Product Line</Label>
               <Select onValueChange={(value) => updateFormState({ productLineId: value })}>
                 <SelectTrigger>
@@ -331,13 +331,13 @@ export const BrandProductLineTab = ({ formState, updateFormState, onComplete }: 
                       {productLine.name}
                     </SelectItem>
                   ))}
-                  {!showNewBrandForm && formState.brandId && filteredProductLines.length === 0 && (
-                    <SelectItem value="" disabled>
-                      No product lines found for this brand
-                    </SelectItem>
-                  )}
                 </SelectContent>
               </Select>
+              {!showNewBrandForm && formState.brandId && filteredProductLines.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  No product lines found for this brand. Consider creating a new product line.
+                </p>
+              )}
             </div>
           )}
         </CardContent>
