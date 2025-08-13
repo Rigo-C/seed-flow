@@ -118,7 +118,9 @@ export const BrandProductLineTab = ({ formState, updateFormState, onComplete }: 
         const { data: productLine, error: productLineError } = await supabase
           .from("product_lines")
           .insert({
-            ...productLineData,
+            name: productLineData.name,
+            description: productLineData.description,
+            target_species: productLineData.targetSpecies,
             brand_id: brandId
           })
           .select("id")
