@@ -227,6 +227,16 @@ export const SourcesTab = ({ formState, updateFormState, onComplete }: SourcesTa
   };
 
   const handleFinish = () => {
+    // Check if there are any URL errors before finishing
+    if (Object.keys(urlErrors).length > 0) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please fix duplicate URL errors before finishing."
+      });
+      return;
+    }
+
     toast({
       title: "Product Flow Complete!",
       description: "Your product has been successfully created with all details.",

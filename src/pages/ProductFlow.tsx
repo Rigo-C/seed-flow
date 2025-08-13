@@ -95,6 +95,15 @@ const ProductFlow = () => {
     }
   };
 
+  const clearWorkflow = () => {
+    setFormState({
+      variantIds: [],
+      optionIds: [],
+      completedTabs: []
+    });
+    setActiveTab("brand-product-line");
+  };
+
   return (
     <div className="min-h-screen bg-gradient-subtle">
       <div className="container mx-auto py-8 px-4">
@@ -220,6 +229,7 @@ const ProductFlow = () => {
                   updateFormState={updateFormState}
                   onComplete={() => {
                     markTabCompleted("sources");
+                    clearWorkflow();
                   }}
                 />
               </TabsContent>
