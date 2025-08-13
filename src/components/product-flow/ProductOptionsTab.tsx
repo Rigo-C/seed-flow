@@ -29,15 +29,7 @@ interface OptionData {
 }
 
 export const ProductOptionsTab = ({ formState, updateFormState, onComplete }: ProductOptionsTabProps) => {
-  const [options, setOptions] = useState<OptionData[]>([
-    { 
-      name: "weight", 
-      label: "Weight", 
-      dataType: "number", 
-      unit: "lbs", 
-      values: [{ value: "5" }, { value: "15" }, { value: "30" }] 
-    }
-  ]);
+  const [options, setOptions] = useState<OptionData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const dataTypes = [
@@ -57,9 +49,7 @@ export const ProductOptionsTab = ({ formState, updateFormState, onComplete }: Pr
   };
 
   const removeOption = (index: number) => {
-    if (options.length > 1) {
-      setOptions(prev => prev.filter((_, i) => i !== index));
-    }
+    setOptions(prev => prev.filter((_, i) => i !== index));
   };
 
   const updateOption = (index: number, field: keyof OptionData, value: string) => {
@@ -105,12 +95,14 @@ export const ProductOptionsTab = ({ formState, updateFormState, onComplete }: Pr
         option.values.some(v => v.value.trim())
       );
       
+      // Allow proceeding without creating any options
       if (validOptions.length === 0) {
+        updateFormState({ optionIds: [] });
         toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Please add at least one option with values."
+          title: "Success!",
+          description: "Proceeding without product options."
         });
+        onComplete();
         return;
       }
 
@@ -195,10 +187,8 @@ export const ProductOptionsTab = ({ formState, updateFormState, onComplete }: Pr
     }
   };
 
-  const isValid = options.some(option => 
-    option.name.trim() && option.label.trim() && 
-    option.values.some(v => v.value.trim())
-  );
+  // Always allow proceeding - options are not required
+  const isValid = true;
 
   return (
     <div className="space-y-6">
@@ -212,6 +202,17 @@ export const ProductOptionsTab = ({ formState, updateFormState, onComplete }: Pr
 
       {/* Options */}
       <div className="space-y-6">
+        {options.length === 0 && (
+          <Card>
+            <CardContent className="py-8">
+              <div className="text-center text-muted-foreground">
+                <Tag className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p className="text-lg mb-2">No product options yet</p>
+                <p className="text-sm">Click "Add Option" to create selectable attributes, or continue without options.</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
         {options.map((option, optionIndex) => (
           <Card key={optionIndex}>
             <CardHeader>
@@ -220,16 +221,14 @@ export const ProductOptionsTab = ({ formState, updateFormState, onComplete }: Pr
                   <Settings className="h-5 w-5" />
                   Option {optionIndex + 1}
                 </CardTitle>
-                {options.length > 1 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeOption(optionIndex)}
-                    className="text-destructive hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeOption(optionIndex)}
+                  className="text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -326,7 +325,7 @@ export const ProductOptionsTab = ({ formState, updateFormState, onComplete }: Pr
       <div className="flex justify-center">
         <Button onClick={addOption} variant="outline" size="lg">
           <Plus className="h-4 w-4 mr-2" />
-          Add Another Option
+          {options.length === 0 ? "Add Option" : "Add Another Option"}
         </Button>
       </div>
 
