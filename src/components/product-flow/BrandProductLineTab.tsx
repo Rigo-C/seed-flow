@@ -34,7 +34,8 @@ export const BrandProductLineTab = ({ formState, updateFormState, onComplete }: 
   const [showNewBrandForm, setShowNewBrandForm] = useState(false);
   const [showNewProductLineForm, setShowNewProductLineForm] = useState(true);
   const [brands, setBrands] = useState<{id: string, name: string}[]>([]);
-  const [productLines, setProductLines] = useState<{id: string, name: string}[]>([]);
+  const [productLines, setProductLines] = useState<{id: string, name: string, brand_id?: string}[]>([]);
+  const [filteredProductLines, setFilteredProductLines] = useState<{id: string, name: string, brand_id?: string}[]>([]);
 
   const speciesOptions = [
     { id: "dog", label: "Dog" },
@@ -58,19 +59,32 @@ export const BrandProductLineTab = ({ formState, updateFormState, onComplete }: 
     const fetchProductLines = async () => {
       const { data, error } = await supabase
         .from("product_lines")
-        .select("id, name")
+        .select("id, name, brand_id")
         .order("name");
       
       if (error) {
         console.error("Error fetching product lines:", error);
       } else {
         setProductLines(data || []);
+        setFilteredProductLines(data || []);
       }
     };
 
     fetchBrands();
     fetchProductLines();
   }, []);
+
+  // Filter product lines when brand selection changes
+  useEffect(() => {
+    if (!showNewBrandForm && formState.brandId) {
+      // Filter product lines by selected brand
+      const filtered = productLines.filter(pl => pl.brand_id === formState.brandId);
+      setFilteredProductLines(filtered);
+    } else {
+      // Show all product lines if creating new brand or no brand selected
+      setFilteredProductLines(productLines);
+    }
+  }, [formState.brandId, showNewBrandForm, productLines]);
 
   const handleSpeciesChange = (speciesId: string, checked: boolean) => {
     setProductLineData(prev => ({
@@ -312,11 +326,16 @@ export const BrandProductLineTab = ({ formState, updateFormState, onComplete }: 
                   <SelectValue placeholder="Choose an existing product line" />
                 </SelectTrigger>
                 <SelectContent>
-                  {productLines.map((productLine) => (
+                  {filteredProductLines.map((productLine) => (
                     <SelectItem key={productLine.id} value={productLine.id}>
                       {productLine.name}
                     </SelectItem>
                   ))}
+                  {!showNewBrandForm && formState.brandId && filteredProductLines.length === 0 && (
+                    <SelectItem value="" disabled>
+                      No product lines found for this brand
+                    </SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
