@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ArrowRight, Package, Palette, Settings, Tag, MapPin, Check } from "lucide-react";
+import { NavigationHeader } from "@/components/NavigationHeader";
 import { BrandProductLineTab } from "@/components/product-flow/BrandProductLineTab";
 import { ProductVariantTab } from "@/components/product-flow/ProductVariantTab";
 import { ProductOptionsTab } from "@/components/product-flow/ProductOptionsTab";
@@ -106,14 +107,14 @@ const ProductFlow = () => {
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
+      <NavigationHeader title="Product Flow Builder" />
       <div className="container mx-auto py-8 px-4">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2 bg-gradient-primary bg-clip-text text-transparent">
-            Product Flow Builder
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold mb-4 bg-gradient-primary bg-clip-text text-transparent">
+            Build Your Product
           </h1>
-          <p className="text-muted-foreground text-lg">
-            Create comprehensive product listings with intelligent workflows
+          <p className="text-lg text-muted-foreground mb-6">
+            Follow the guided workflow to create comprehensive product listings
           </p>
         </div>
 

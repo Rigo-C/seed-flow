@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { NavigationHeader } from "@/components/NavigationHeader";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -191,14 +192,14 @@ const ItemLookupPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
+      <NavigationHeader title="Product Lookup" />
       <div className="container mx-auto px-4 py-8">
-        {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold mb-4 bg-gradient-primary bg-clip-text text-transparent">
-            Product Lookup
+            Search Products
           </h1>
           <p className="text-lg text-muted-foreground mb-6">
-            Search for detailed product information using ASIN or UPC codes
+            Find detailed product information using ASIN or UPC codes
           </p>
         </div>
 
