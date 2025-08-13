@@ -36,6 +36,7 @@ export const SourcesTab = ({ formState, updateFormState, onComplete }: SourcesTa
   const [sources, setSources] = useState<SourceData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
+  const [urlErrors, setUrlErrors] = useState<Record<number, string>>({});
 
   const availabilityOptions = [
     { value: "in_stock", label: "In Stock" },
@@ -114,10 +115,49 @@ export const SourcesTab = ({ formState, updateFormState, onComplete }: SourcesTa
     setSources(prev => prev.filter((_, i) => i !== index));
   };
 
-  const updateSource = (index: number, field: keyof SourceData, value: string) => {
+  const updateSource = async (index: number, field: keyof SourceData, value: string) => {
     setSources(prev => prev.map((source, i) => 
       i === index ? { ...source, [field]: value } : source
     ));
+
+    // Check for duplicate URL when updating URL field
+    if (field === "url" && value.trim()) {
+      await checkDuplicateUrl(index, value);
+    } else if (field === "url") {
+      // Clear error when URL is empty
+      setUrlErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[index];
+        return newErrors;
+      });
+    }
+  };
+
+  const checkDuplicateUrl = async (index: number, url: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("product_sources")
+        .select("id")
+        .eq("url", url)
+        .limit(1);
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        setUrlErrors(prev => ({
+          ...prev,
+          [index]: "Duplicate URL already exists in product_sources database"
+        }));
+      } else {
+        setUrlErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors[index];
+          return newErrors;
+        });
+      }
+    } catch (error) {
+      console.error("Error checking duplicate URL:", error);
+    }
   };
 
   const getVariantSources = (variantId: string) => {
@@ -128,6 +168,17 @@ export const SourcesTab = ({ formState, updateFormState, onComplete }: SourcesTa
   const handleSubmit = async () => {
     setIsLoading(true);
     try {
+      // Check if there are any URL errors
+      if (Object.keys(urlErrors).length > 0) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Please fix duplicate URL errors before saving."
+        });
+        setIsLoading(false);
+        return;
+      }
+
       const validSources = sources.filter(source => 
         source.retailerName.trim() && source.url.trim()
       );
@@ -260,7 +311,13 @@ export const SourcesTab = ({ formState, updateFormState, onComplete }: SourcesTa
                                 value={source.url}
                                 onChange={(e) => updateSource(source.index, "url", e.target.value)}
                                 placeholder="https://..."
+                                className={urlErrors[source.index] ? "border-destructive" : ""}
                               />
+                              {urlErrors[source.index] && (
+                                <p className="text-sm text-destructive mt-1">
+                                  {urlErrors[source.index]}
+                                </p>
+                              )}
                             </div>
                             <div className="flex gap-2">
                               <div className="flex-1">
