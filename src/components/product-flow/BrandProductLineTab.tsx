@@ -116,7 +116,8 @@ export const BrandProductLineTab = ({ formState, updateFormState, onComplete }: 
 
       updateFormState({
         brandId,
-        productLineId
+        productLineId,
+        isNewProductLine: showNewProductLineForm
       });
 
       toast({

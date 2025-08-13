@@ -18,6 +18,7 @@ export interface FormState {
   variantIds: string[];
   optionIds: string[];
   completedTabs: string[];
+  isNewProductLine?: boolean;
 }
 
 const ProductFlow = () => {
