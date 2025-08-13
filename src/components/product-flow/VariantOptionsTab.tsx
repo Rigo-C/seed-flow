@@ -58,45 +58,42 @@ export const VariantOptionsTab = ({ formState, updateFormState, onComplete }: Va
         setVariants(variantsData || []);
       }
 
-      // Load product options and their values
-      if (formState.optionIds.length > 0) {
-        const { data: optionsData, error: optionsError } = await supabase
-          .from("product_options")
-          .select(`
+      // Load ALL product options and their values (not just from current session)
+      const { data: optionsData, error: optionsError } = await supabase
+        .from("product_options")
+        .select(`
+          id,
+          name,
+          label,
+          product_option_values (
             id,
-            name,
-            label,
-            product_option_values (
-              id,
-              value
-            )
-          `)
-          .in("id", formState.optionIds);
+            value
+          )
+        `);
 
-        if (optionsError) throw optionsError;
+      if (optionsError) throw optionsError;
 
-        const formattedOptions = optionsData?.map(option => ({
-          id: option.id,
-          name: option.name,
-          label: option.label,
-          values: option.product_option_values || []
-        })) || [];
+      const formattedOptions = optionsData?.map(option => ({
+        id: option.id,
+        name: option.name,
+        label: option.label,
+        values: option.product_option_values || []
+      })) || [];
 
-        setProductOptions(formattedOptions);
+      setProductOptions(formattedOptions);
 
-        // Initialize assignments
-        const initialAssignments: VariantOptionAssignment[] = [];
-        formState.variantIds.forEach(variantId => {
-          formattedOptions.forEach(option => {
-            initialAssignments.push({
-              variantId,
-              optionId: option.id,
-              valueId: ""
-            });
+      // Initialize assignments
+      const initialAssignments: VariantOptionAssignment[] = [];
+      formState.variantIds.forEach(variantId => {
+        formattedOptions.forEach(option => {
+          initialAssignments.push({
+            variantId,
+            optionId: option.id,
+            valueId: ""
           });
         });
-        setAssignments(initialAssignments);
-      }
+      });
+      setAssignments(initialAssignments);
     } catch (error) {
       console.error("Error loading data:", error);
       toast({
