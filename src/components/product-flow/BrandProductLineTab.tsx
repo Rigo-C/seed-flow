@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,14 +32,45 @@ export const BrandProductLineTab = ({ formState, updateFormState, onComplete }: 
   
   const [isLoading, setIsLoading] = useState(false);
   const [showNewBrandForm, setShowNewBrandForm] = useState(false);
+  const [showNewProductLineForm, setShowNewProductLineForm] = useState(true);
+  const [brands, setBrands] = useState<{id: string, name: string}[]>([]);
+  const [productLines, setProductLines] = useState<{id: string, name: string}[]>([]);
 
   const speciesOptions = [
     { id: "dog", label: "Dog" },
-    { id: "cat", label: "Cat" },
-    { id: "bird", label: "Bird" },
-    { id: "rabbit", label: "Rabbit" },
-    { id: "fish", label: "Fish" }
+    { id: "cat", label: "Cat" }
   ];
+
+  useEffect(() => {
+    const fetchBrands = async () => {
+      const { data, error } = await supabase
+        .from("brands")
+        .select("id, name")
+        .order("name");
+      
+      if (error) {
+        console.error("Error fetching brands:", error);
+      } else {
+        setBrands(data || []);
+      }
+    };
+
+    const fetchProductLines = async () => {
+      const { data, error } = await supabase
+        .from("product_lines")
+        .select("id, name")
+        .order("name");
+      
+      if (error) {
+        console.error("Error fetching product lines:", error);
+      } else {
+        setProductLines(data || []);
+      }
+    };
+
+    fetchBrands();
+    fetchProductLines();
+  }, []);
 
   const handleSpeciesChange = (speciesId: string, checked: boolean) => {
     setProductLineData(prev => ({
@@ -54,6 +85,7 @@ export const BrandProductLineTab = ({ formState, updateFormState, onComplete }: 
     setIsLoading(true);
     try {
       let brandId = formState.brandId;
+      let productLineId = formState.productLineId;
 
       // Create brand if new
       if (showNewBrandForm) {
@@ -67,26 +99,29 @@ export const BrandProductLineTab = ({ formState, updateFormState, onComplete }: 
         brandId = brand.id;
       }
 
-      // Create product line
-      const { data: productLine, error: productLineError } = await supabase
-        .from("product_lines")
-        .insert({
-          ...productLineData,
-          brand_id: brandId
-        })
-        .select("id")
-        .single();
+      // Create product line if new
+      if (showNewProductLineForm) {
+        const { data: productLine, error: productLineError } = await supabase
+          .from("product_lines")
+          .insert({
+            ...productLineData,
+            brand_id: brandId
+          })
+          .select("id")
+          .single();
 
-      if (productLineError) throw productLineError;
+        if (productLineError) throw productLineError;
+        productLineId = productLine.id;
+      }
 
       updateFormState({
         brandId,
-        productLineId: productLine.id
+        productLineId
       });
 
       toast({
         title: "Success!",
-        description: "Brand and product line created successfully."
+        description: "Brand and product line set up successfully."
       });
 
       onComplete();
@@ -95,14 +130,14 @@ export const BrandProductLineTab = ({ formState, updateFormState, onComplete }: 
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to create brand and product line."
+        description: "Failed to set up brand and product line."
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const isValid = productLineData.name && productLineData.targetSpecies.length > 0 && 
+  const isValid = (showNewProductLineForm ? productLineData.name && productLineData.targetSpecies.length > 0 : formState.productLineId) && 
     (formState.brandId || (showNewBrandForm && brandData.name));
 
   return (
@@ -184,7 +219,11 @@ export const BrandProductLineTab = ({ formState, updateFormState, onComplete }: 
                   <SelectValue placeholder="Choose an existing brand" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="sample-brand">Sample Brand</SelectItem>
+                  {brands.map((brand) => (
+                    <SelectItem key={brand.id} value={brand.id}>
+                      {brand.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -204,45 +243,83 @@ export const BrandProductLineTab = ({ formState, updateFormState, onComplete }: 
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="productLineName">Product Line Name *</Label>
-              <Input
-                id="productLineName"
-                value={productLineData.name}
-                onChange={(e) => setProductLineData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="Premium Dog Food Series"
-              />
-            </div>
-            <div>
-              <Label>Target Species *</Label>
-              <div className="grid grid-cols-2 gap-2 mt-2">
-                {speciesOptions.map((species) => (
-                  <div key={species.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={species.id}
-                      checked={productLineData.targetSpecies.includes(species.id)}
-                      onCheckedChange={(checked) => handleSpeciesChange(species.id, checked as boolean)}
-                    />
-                    <Label htmlFor={species.id} className="text-sm">
-                      {species.label}
-                    </Label>
+          <div className="flex gap-2">
+            <Button
+              variant={!showNewProductLineForm ? "default" : "outline"}
+              onClick={() => setShowNewProductLineForm(false)}
+              size="sm"
+            >
+              Select Existing
+            </Button>
+            <Button
+              variant={showNewProductLineForm ? "default" : "outline"}
+              onClick={() => setShowNewProductLineForm(true)}
+              size="sm"
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Create New
+            </Button>
+          </div>
+
+          {showNewProductLineForm ? (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="productLineName">Product Line Name *</Label>
+                  <Input
+                    id="productLineName"
+                    value={productLineData.name}
+                    onChange={(e) => setProductLineData(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="Premium Dog Food Series"
+                  />
+                </div>
+                <div>
+                  <Label>Target Species *</Label>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    {speciesOptions.map((species) => (
+                      <div key={species.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={species.id}
+                          checked={productLineData.targetSpecies.includes(species.id)}
+                          onCheckedChange={(checked) => handleSpeciesChange(species.id, checked as boolean)}
+                        />
+                        <Label htmlFor={species.id} className="text-sm">
+                          {species.label}
+                        </Label>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </div>
               </div>
+              
+              <div>
+                <Label htmlFor="productLineDescription">Description</Label>
+                <Textarea
+                  id="productLineDescription"
+                  value={productLineData.description}
+                  onChange={(e) => setProductLineData(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Describe the product line..."
+                  rows={3}
+                />
+              </div>
+            </>
+          ) : (
+            <div>
+              <Label htmlFor="existingProductLine">Select Product Line</Label>
+              <Select onValueChange={(value) => updateFormState({ productLineId: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose an existing product line" />
+                </SelectTrigger>
+                <SelectContent>
+                  {productLines.map((productLine) => (
+                    <SelectItem key={productLine.id} value={productLine.id}>
+                      {productLine.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          </div>
-          
-          <div>
-            <Label htmlFor="productLineDescription">Description</Label>
-            <Textarea
-              id="productLineDescription"
-              value={productLineData.description}
-              onChange={(e) => setProductLineData(prev => ({ ...prev, description: e.target.value }))}
-              placeholder="Describe the product line..."
-              rows={3}
-            />
-          </div>
+          )}
         </CardContent>
       </Card>
 
