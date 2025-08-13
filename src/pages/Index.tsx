@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowRight, Package, Zap, Shield, BarChart } from "lucide-react";
+import { ArrowRight, Package, Zap, Shield, BarChart, Search } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Index = () => {
@@ -16,12 +16,20 @@ const Index = () => {
             The most advanced product management system for creating comprehensive product listings 
             with intelligent workflows and seamless data relationships.
           </p>
-          <Link to="/product-flow">
-            <Button variant="premium" size="lg" className="shadow-glow">
-              Start Building Products
-              <ArrowRight className="h-5 w-5 ml-2" />
-            </Button>
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link to="/product-flow">
+              <Button variant="premium" size="lg" className="shadow-glow">
+                Start Building Products
+                <ArrowRight className="h-5 w-5 ml-2" />
+              </Button>
+            </Link>
+            <Link to="/lookup">
+              <Button variant="outline" size="lg">
+                <Search className="h-5 w-5 mr-2" />
+                Lookup Products
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Features Grid */}
