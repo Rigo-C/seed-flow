@@ -117,34 +117,61 @@ export const ProductOptionsTab = ({ formState, updateFormState, onComplete }: Pr
       const optionIds: string[] = [];
 
       for (const option of validOptions) {
-        // Create option
-        const { data: createdOption, error: optionError } = await supabase
+        let optionId: string;
+
+        // Check if option already exists
+        const { data: existingOption } = await supabase
           .from("product_options")
-          .insert({
-            name: option.name,
-            label: option.label,
-            data_type: option.dataType,
-            unit: option.unit || null
-          })
           .select("id")
+          .eq("name", option.name)
           .single();
 
-        if (optionError) throw optionError;
-        optionIds.push(createdOption.id);
+        if (existingOption) {
+          // Use existing option
+          optionId = existingOption.id;
+          optionIds.push(optionId);
+        } else {
+          // Create new option
+          const { data: createdOption, error: optionError } = await supabase
+            .from("product_options")
+            .insert({
+              name: option.name,
+              label: option.label,
+              data_type: option.dataType,
+              unit: option.unit || null
+            })
+            .select("id")
+            .single();
 
-        // Create option values
+          if (optionError) throw optionError;
+          optionId = createdOption.id;
+          optionIds.push(optionId);
+        }
+
+        // Create option values (check for duplicates)
         const validValues = option.values.filter(v => v.value.trim());
         if (validValues.length > 0) {
-          const valueInserts = validValues.map(val => ({
-            product_option_id: createdOption.id,
-            value: val.value
-          }));
+          for (const val of validValues) {
+            // Check if value already exists for this option
+            const { data: existingValue } = await supabase
+              .from("product_option_values")
+              .select("id")
+              .eq("product_option_id", optionId)
+              .eq("value", val.value)
+              .single();
 
-          const { error: valuesError } = await supabase
-            .from("product_option_values")
-            .insert(valueInserts);
+            if (!existingValue) {
+              // Create new value only if it doesn't exist
+              const { error: valueError } = await supabase
+                .from("product_option_values")
+                .insert({
+                  product_option_id: optionId,
+                  value: val.value
+                });
 
-          if (valuesError) throw valuesError;
+              if (valueError) throw valueError;
+            }
+          }
         }
       }
 
