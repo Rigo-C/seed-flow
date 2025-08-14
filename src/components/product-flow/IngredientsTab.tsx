@@ -49,6 +49,13 @@ export const IngredientsTab = ({ formState, updateFormState, onComplete }: Ingre
   }, [formState.variantIds]);
 
   useEffect(() => {
+    const currentVariant = variants[selectedVariantIndex];
+    if (currentVariant) {
+      loadExistingIngredients(currentVariant.id);
+    }
+  }, [selectedVariantIndex, variants]);
+
+  useEffect(() => {
     if (ingredientSearch.trim()) {
       searchIngredients();
     } else {
@@ -84,6 +91,27 @@ export const IngredientsTab = ({ formState, updateFormState, onComplete }: Ingre
       });
     } finally {
       setIsLoadingData(false);
+    }
+  };
+
+  const loadExistingIngredients = async (variantId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("product_variant_ingredients")
+        .select("ingredient_id")
+        .eq("product_variant_id", variantId);
+
+      if (error) throw error;
+
+      const existingIngredientIds = data?.map(pvi => pvi.ingredient_id) || [];
+      
+      setVariantIngredients(prev => prev.map(vi => 
+        vi.variantId === variantId
+          ? { ...vi, ingredientIds: existingIngredientIds }
+          : vi
+      ));
+    } catch (error) {
+      console.error("Error loading existing ingredients:", error);
     }
   };
 
@@ -144,12 +172,34 @@ export const IngredientsTab = ({ formState, updateFormState, onComplete }: Ingre
     setSearchResults([]);
   };
 
-  const removeIngredientFromVariant = (variantId: string, ingredientId: string) => {
-    setVariantIngredients(prev => prev.map(vi => 
-      vi.variantId === variantId
-        ? { ...vi, ingredientIds: vi.ingredientIds.filter(id => id !== ingredientId) }
-        : vi
-    ));
+  const removeIngredientFromVariant = async (variantId: string, ingredientId: string) => {
+    try {
+      // Remove from database if it exists
+      await supabase
+        .from("product_variant_ingredients")
+        .delete()
+        .eq("product_variant_id", variantId)
+        .eq("ingredient_id", ingredientId);
+
+      // Update local state
+      setVariantIngredients(prev => prev.map(vi => 
+        vi.variantId === variantId
+          ? { ...vi, ingredientIds: vi.ingredientIds.filter(id => id !== ingredientId) }
+          : vi
+      ));
+
+      toast({
+        title: "Success!",
+        description: "Ingredient removed successfully."
+      });
+    } catch (error) {
+      console.error("Error removing ingredient:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to remove ingredient."
+      });
+    }
   };
 
   const processBulkIngredients = async () => {
