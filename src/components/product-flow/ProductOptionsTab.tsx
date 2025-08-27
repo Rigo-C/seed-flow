@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowRight, Plus, Trash2, Settings, Tag } from "lucide-react";
+import { ArrowRight, Plus, Trash2, Settings, Tag, GripVertical, ArrowUp, ArrowDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { FormState } from "@/pages/ProductFlow";
@@ -85,6 +85,47 @@ export const ProductOptionsTab = ({ formState, updateFormState, onComplete }: Pr
           }
         : option
     ));
+  };
+
+  const moveOptionUp = (index: number) => {
+    if (index === 0) return;
+    setOptions(prev => {
+      const newOptions = [...prev];
+      [newOptions[index - 1], newOptions[index]] = [newOptions[index], newOptions[index - 1]];
+      return newOptions;
+    });
+  };
+
+  const moveOptionDown = (index: number) => {
+    if (index === options.length - 1) return;
+    setOptions(prev => {
+      const newOptions = [...prev];
+      [newOptions[index], newOptions[index + 1]] = [newOptions[index + 1], newOptions[index]];
+      return newOptions;
+    });
+  };
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    e.dataTransfer.setData("text/plain", index.toString());
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    const dragIndex = parseInt(e.dataTransfer.getData("text/plain"));
+    
+    if (dragIndex === dropIndex) return;
+    
+    setOptions(prev => {
+      const newOptions = [...prev];
+      const draggedItem = newOptions[dragIndex];
+      newOptions.splice(dragIndex, 1);
+      newOptions.splice(dropIndex, 0, draggedItem);
+      return newOptions;
+    });
   };
 
   const handleSubmit = async () => {
@@ -214,21 +255,55 @@ export const ProductOptionsTab = ({ formState, updateFormState, onComplete }: Pr
           </Card>
         )}
         {options.map((option, optionIndex) => (
-          <Card key={optionIndex}>
+          <Card 
+            key={optionIndex}
+            draggable={options.length > 1}
+            onDragStart={(e) => handleDragStart(e, optionIndex)}
+            onDragOver={handleDragOver}
+            onDrop={(e) => handleDrop(e, optionIndex)}
+            className={options.length > 1 ? "cursor-move" : ""}
+          >
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2 text-lg">
+                  {options.length > 1 && (
+                    <GripVertical className="h-5 w-5 text-muted-foreground" />
+                  )}
                   <Settings className="h-5 w-5" />
                   Option {optionIndex + 1}
                 </CardTitle>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeOption(optionIndex)}
-                  className="text-destructive hover:text-destructive"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center gap-1">
+                  {options.length > 1 && (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => moveOptionUp(optionIndex)}
+                        disabled={optionIndex === 0}
+                        className="h-8 w-8 p-0"
+                      >
+                        <ArrowUp className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => moveOptionDown(optionIndex)}
+                        disabled={optionIndex === options.length - 1}
+                        className="h-8 w-8 p-0"
+                      >
+                        <ArrowDown className="h-4 w-4" />
+                      </Button>
+                    </>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeOption(optionIndex)}
+                    className="text-destructive hover:text-destructive h-8 w-8 p-0"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
