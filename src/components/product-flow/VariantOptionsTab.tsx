@@ -77,8 +77,15 @@ export const VariantOptionsTab = ({ formState, updateFormState, onComplete }: Va
         id: option.id,
         name: option.name,
         label: option.label,
-        values: option.product_option_values || []
+        values: (option.product_option_values || []).sort((a, b) => a.value.localeCompare(b.value))
       })) || [];
+
+      // Sort options alphabetically by label (or name if no label)
+      formattedOptions.sort((a, b) => {
+        const labelA = a.label || a.name;
+        const labelB = b.label || b.name;
+        return labelA.localeCompare(labelB);
+      });
 
       setProductOptions(formattedOptions);
 
