@@ -410,10 +410,13 @@ export const IngredientsTab = ({ formState, updateFormState, onComplete }: Ingre
                 <Button
                   key={variant.id}
                   variant={selectedVariantIndex === index ? "default" : "outline"}
-                  className="w-full justify-start"
+                  className="w-full justify-start text-left overflow-hidden"
                   onClick={() => setSelectedVariantIndex(index)}
+                  title={variant.name}
                 >
-                  {variant.name}
+                  <span className="truncate block w-full">
+                    {variant.name}
+                  </span>
                 </Button>
               ))}
             </CardContent>
