@@ -324,14 +324,15 @@ export const IngredientsTab = ({ formState, updateFormState, onComplete }: Ingre
 
   const handleSubmit = async () => {
     setIsLoading(true);
+    let insertData: any[] = [];
+    
     try {
-      const insertData: any[] = [];
-      
       variantIngredients.forEach(vi => {
-        vi.ingredientIds.forEach(ingredientId => {
+        vi.ingredientIds.forEach((ingredientId, index) => {
           insertData.push({
             product_variant_id: vi.variantId,
-            ingredient_id: ingredientId
+            ingredient_id: ingredientId,
+            ingredient_order: index + 1 // Required field for ingredient order
           });
         });
       });
@@ -358,11 +359,12 @@ export const IngredientsTab = ({ formState, updateFormState, onComplete }: Ingre
 
       onComplete();
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error creating ingredient assignments:", error);
+      console.error("Insert data that failed:", insertData);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to create ingredient assignments."
+        description: "Failed to create ingredient assignments. Check console for details."
       });
     } finally {
       setIsLoading(false);
