@@ -3,20 +3,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { ArrowRight, Package, Palette, Settings, Tag, MapPin, Check } from "lucide-react";
+import { ArrowRight, Package, Palette, Settings, Tag, MapPin, Check, Leaf } from "lucide-react";
 import { NavigationHeader } from "@/components/NavigationHeader";
 import { BrandProductLineTab } from "@/components/product-flow/BrandProductLineTab";
 import { ProductVariantTab } from "@/components/product-flow/ProductVariantTab";
-import { ProductOptionsTab } from "@/components/product-flow/ProductOptionsTab";
-import { VariantOptionsTab } from "@/components/product-flow/VariantOptionsTab";
+import { CategoriesTab } from "@/components/product-flow/CategoriesTab";
+import { ProductIdentifiersTab } from "@/components/product-flow/ProductIdentifiersTab";
 import { IngredientsTab } from "@/components/product-flow/IngredientsTab";
+import { NutritionalAnalysisTab } from "@/components/product-flow/NutritionalAnalysisTab";
 import { SourcesTab } from "@/components/product-flow/SourcesTab";
+import { ProductRatingTab } from "@/components/product-flow/ProductRatingTab";
 
 export interface FormState {
   brandId?: string;
   productLineId?: string;
   variantIds: string[];
-  optionIds: string[];
+  categoryIds: string[];
   completedTabs: string[];
   isNewProductLine?: boolean;
 }
@@ -25,7 +27,7 @@ const ProductFlow = () => {
   const [activeTab, setActiveTab] = useState("brand-product-line");
   const [formState, setFormState] = useState<FormState>({
     variantIds: [],
-    optionIds: [],
+    categoryIds: [],
     completedTabs: []
   });
 
@@ -43,28 +45,40 @@ const ProductFlow = () => {
       description: "Add product variants"
     },
     { 
-      id: "options", 
-      label: "Product Options", 
-      icon: Settings,
-      description: "Define option types and values"
+      id: "categories", 
+      label: "Categories", 
+      icon: Tag,
+      description: "Assign product categories"
     },
     { 
-      id: "variant-options", 
-      label: "Variant Options", 
-      icon: Tag,
-      description: "Assign options to variants"
+      id: "identifiers", 
+      label: "Product Identifiers", 
+      icon: Settings,
+      description: "Add UPC, EAN, and other identifiers"
     },
     { 
       id: "ingredients", 
       label: "Ingredients", 
-      icon: Tag,
+      icon: Leaf,
       description: "Map ingredients to variants"
+    },
+    { 
+      id: "nutrition", 
+      label: "Nutritional Analysis", 
+      icon: Tag,
+      description: "Add nutritional information"
     },
     { 
       id: "sources", 
       label: "Sources", 
       icon: MapPin,
       description: "Add retailer information"
+    },
+    { 
+      id: "rating", 
+      label: "Product Rating", 
+      icon: Check,
+      description: "Set product rating and scores"
     }
   ];
 
@@ -100,7 +114,7 @@ const ProductFlow = () => {
   const clearWorkflow = () => {
     setFormState({
       variantIds: [],
-      optionIds: [],
+      categoryIds: [],
       completedTabs: []
     });
     setActiveTab("brand-product-line");
@@ -143,7 +157,7 @@ const ProductFlow = () => {
         {/* Main Form */}
         <Card className="shadow-elegant">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid grid-cols-6 w-full bg-muted/50">
+            <TabsList className="grid grid-cols-8 w-full bg-muted/50">
               {tabs.map((tab, index) => {
                 const Icon = tab.icon;
                 const isCompleted = formState.completedTabs.includes(tab.id);
@@ -192,23 +206,23 @@ const ProductFlow = () => {
                 />
               </TabsContent>
 
-              <TabsContent value="options" className="mt-0">
-                <ProductOptionsTab 
+              <TabsContent value="categories" className="mt-0">
+                <CategoriesTab 
                   formState={formState}
                   updateFormState={updateFormState}
                   onComplete={() => {
-                    markTabCompleted("options");
+                    markTabCompleted("categories");
                     goToNextTab();
                   }}
                 />
               </TabsContent>
 
-              <TabsContent value="variant-options" className="mt-0">
-                <VariantOptionsTab 
+              <TabsContent value="identifiers" className="mt-0">
+                <ProductIdentifiersTab 
                   formState={formState}
                   updateFormState={updateFormState}
                   onComplete={() => {
-                    markTabCompleted("variant-options");
+                    markTabCompleted("identifiers");
                     goToNextTab();
                   }}
                 />
@@ -225,12 +239,34 @@ const ProductFlow = () => {
                 />
               </TabsContent>
 
+              <TabsContent value="nutrition" className="mt-0">
+                <NutritionalAnalysisTab 
+                  formState={formState}
+                  updateFormState={updateFormState}
+                  onComplete={() => {
+                    markTabCompleted("nutrition");
+                    goToNextTab();
+                  }}
+                />
+              </TabsContent>
+
               <TabsContent value="sources" className="mt-0">
                 <SourcesTab 
                   formState={formState}
                   updateFormState={updateFormState}
                   onComplete={() => {
                     markTabCompleted("sources");
+                    goToNextTab();
+                  }}
+                />
+              </TabsContent>
+
+              <TabsContent value="rating" className="mt-0">
+                <ProductRatingTab 
+                  formState={formState}
+                  updateFormState={updateFormState}
+                  onComplete={() => {
+                    markTabCompleted("rating");
                     clearWorkflow();
                   }}
                 />
