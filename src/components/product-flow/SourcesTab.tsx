@@ -21,8 +21,14 @@ interface Variant {
   name: string;
 }
 
+interface Retailer {
+  id: string;
+  name: string;
+}
+
 interface SourceData {
   variantId: string;
+  retailerId?: string;
   retailerName: string;
   url: string;
   price: string;
@@ -33,10 +39,12 @@ interface SourceData {
 
 export const SourcesTab = ({ formState, updateFormState, onComplete }: SourcesTabProps) => {
   const [variants, setVariants] = useState<Variant[]>([]);
+  const [retailers, setRetailers] = useState<Retailer[]>([]);
   const [sources, setSources] = useState<SourceData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [urlErrors, setUrlErrors] = useState<Record<number, string>>({});
+  const [showNewRetailerForm, setShowNewRetailerForm] = useState<Record<number, boolean>>({});
 
   const availabilityOptions = [
     { value: "in_stock", label: "In Stock" },
@@ -60,6 +68,7 @@ export const SourcesTab = ({ formState, updateFormState, onComplete }: SourcesTa
 
   useEffect(() => {
     loadVariants();
+    loadRetailers();
   }, [formState.variantIds]);
 
   const loadVariants = async () => {
@@ -96,6 +105,20 @@ export const SourcesTab = ({ formState, updateFormState, onComplete }: SourcesTa
       });
     } finally {
       setIsLoadingData(false);
+    }
+  };
+
+  const loadRetailers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("retailers")
+        .select("id, name")
+        .order("name");
+
+      if (error) throw error;
+      setRetailers(data || []);
+    } catch (error) {
+      console.error("Error loading retailers:", error);
     }
   };
 
@@ -192,19 +215,41 @@ export const SourcesTab = ({ formState, updateFormState, onComplete }: SourcesTa
         return;
       }
 
-      const insertData = validSources.map(source => ({
-        product_variant_id: source.variantId,
-        retailer_name: source.retailerName,
-        url: source.url,
-        price: source.price ? parseFloat(source.price) : null,
-        currency: source.currency,
-        availability: source.availability,
-        source_type: source.sourceType
-      }));
+      // Handle retailer creation for new retailers
+      const sourcesWithRetailerIds = await Promise.all(
+        validSources.map(async (source) => {
+          let retailerId = source.retailerId;
+          
+          // Create new retailer if needed
+          if (!retailerId && source.retailerName.trim()) {
+            const { data: newRetailer, error: retailerError } = await supabase
+              .from("retailers")
+              .insert({
+                name: source.retailerName.trim()
+              })
+              .select("id")
+              .single();
+              
+            if (retailerError) throw retailerError;
+            retailerId = newRetailer.id;
+          }
+          
+          return {
+            product_variant_id: source.variantId,
+            retailer_id: retailerId,
+            retailer_name: source.retailerName,
+            url: source.url,
+            price: source.price ? parseFloat(source.price) : null,
+            currency: source.currency,
+            availability: source.availability,
+            source_type: source.sourceType
+          };
+        })
+      );
 
       const { error } = await supabase
         .from("product_sources")
-        .insert(insertData);
+        .insert(sourcesWithRetailerIds);
 
       if (error) throw error;
 
@@ -304,16 +349,52 @@ export const SourcesTab = ({ formState, updateFormState, onComplete }: SourcesTa
                     variantSources.map(source => (
                       <Card key={source.index} className="bg-muted/20">
                         <CardContent className="pt-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <div>
-                              <Label htmlFor={`retailer-${source.index}`}>Retailer Name</Label>
-                              <Input
-                                id={`retailer-${source.index}`}
-                                value={source.retailerName}
-                                onChange={(e) => updateSource(source.index, "retailerName", e.target.value)}
-                                placeholder="Amazon, Chewy, etc."
-                              />
-                            </div>
+                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                             <div className="space-y-2">
+                               <div className="flex items-center justify-between">
+                                 <Label>Retailer</Label>
+                                 <Button
+                                   variant="ghost"
+                                   size="sm"
+                                   onClick={() => setShowNewRetailerForm(prev => ({
+                                     ...prev,
+                                     [source.index]: !prev[source.index]
+                                   }))}
+                                   className="text-xs"
+                                 >
+                                   {showNewRetailerForm[source.index] ? "Select Existing" : "Create New"}
+                                 </Button>
+                               </div>
+                               {showNewRetailerForm[source.index] ? (
+                                 <Input
+                                   value={source.retailerName}
+                                   onChange={(e) => updateSource(source.index, "retailerName", e.target.value)}
+                                   placeholder="New retailer name"
+                                 />
+                               ) : (
+                                 <Select 
+                                   value={source.retailerId || ""} 
+                                   onValueChange={(value) => {
+                                     const retailer = retailers.find(r => r.id === value);
+                                     updateSource(source.index, "retailerId", value);
+                                     if (retailer) {
+                                       updateSource(source.index, "retailerName", retailer.name);
+                                     }
+                                   }}
+                                 >
+                                   <SelectTrigger>
+                                     <SelectValue placeholder="Select retailer" />
+                                   </SelectTrigger>
+                                   <SelectContent>
+                                     {retailers.map(retailer => (
+                                       <SelectItem key={retailer.id} value={retailer.id}>
+                                         {retailer.name}
+                                       </SelectItem>
+                                     ))}
+                                   </SelectContent>
+                                 </Select>
+                               )}
+                             </div>
                             <div>
                               <Label htmlFor={`url-${source.index}`}>Product URL</Label>
                               <Input
