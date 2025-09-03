@@ -19,7 +19,8 @@ interface VariantData {
   id?: string;
   name: string;
   imageUrl: string;
-  lookupKey: string;
+  upc: string;
+  ean: string;
   asin: string;
 }
 
@@ -33,7 +34,7 @@ interface ExistingVariant {
 
 export const ProductVariantTab = ({ formState, updateFormState, onComplete }: ProductVariantTabProps) => {
   const [variants, setVariants] = useState<VariantData[]>([
-    { name: "", imageUrl: "", lookupKey: "", asin: "" }
+    { name: "", imageUrl: "", upc: "", ean: "", asin: "" }
   ]);
   const [existingVariants, setExistingVariants] = useState<ExistingVariant[]>([]);
   const [selectedExistingVariants, setSelectedExistingVariants] = useState<string[]>([]);
@@ -54,15 +55,23 @@ export const ProductVariantTab = ({ formState, updateFormState, onComplete }: Pr
         .select("id, name, image_url, lookup_key, asin")
         .eq("product_id", formState.productLineId);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching existing variants:", error);
+        throw error;
+      }
       setExistingVariants(data || []);
     } catch (error) {
       console.error("Error fetching existing variants:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to fetch existing variants."
+      });
     }
   };
 
   const addVariant = () => {
-    setVariants(prev => [...prev, { name: "", imageUrl: "", lookupKey: "", asin: "" }]);
+    setVariants(prev => [...prev, { name: "", imageUrl: "", upc: "", ean: "", asin: "" }]);
   };
 
   const removeVariant = (index: number) => {
@@ -104,16 +113,20 @@ export const ProductVariantTab = ({ formState, updateFormState, onComplete }: Pr
             product_id: formState.productLineId,
             name: variant.name,
             image_url: variant.imageUrl || null,
-            lookup_key: variant.lookupKey || null,
+            lookup_key: variant.upc || variant.ean || null, // Use UPC first, then EAN as fallback
             asin: variant.asin || null
           }));
 
-          const { data: createdVariants, error } = await supabase
+          const { data: createdVariants, error: variantError } = await supabase
             .from("product_variants")
             .insert(variantInserts)
             .select("id");
 
-          if (error) throw error;
+          if (variantError) {
+            console.error("Error creating variants:", variantError);
+            throw variantError;
+          }
+
           variantIds = [...variantIds, ...createdVariants.map(v => v.id)];
         }
       }
@@ -136,11 +149,11 @@ export const ProductVariantTab = ({ formState, updateFormState, onComplete }: Pr
 
       onComplete();
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error processing product variants:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to process product variants."
+        description: `Failed to process product variants: ${error.message || 'Unknown error'}`
       });
     } finally {
       setIsLoading(false);
@@ -189,7 +202,7 @@ export const ProductVariantTab = ({ formState, updateFormState, onComplete }: Pr
                       {variant.name}
                     </label>
                     <div className="text-xs text-muted-foreground">
-                      {variant.lookup_key && `UPC: ${variant.lookup_key}`}
+                      {variant.lookup_key && `UPC/EAN: ${variant.lookup_key}`}
                       {variant.asin && ` | ASIN: ${variant.asin}`}
                     </div>
                   </div>
@@ -255,30 +268,34 @@ export const ProductVariantTab = ({ formState, updateFormState, onComplete }: Pr
                   />
                 </div>
                 <div>
-                  <Label htmlFor={`variant-lookup-${index}`}>UPC/EAN/Barcode</Label>
+                  <Label htmlFor={`variant-image-${index}`}>Image URL</Label>
                   <Input
-                    id={`variant-lookup-${index}`}
-                    value={variant.lookupKey}
-                    onChange={(e) => updateVariant(index, "lookupKey", e.target.value)}
+                    id={`variant-image-${index}`}
+                    value={variant.imageUrl}
+                    onChange={(e) => updateVariant(index, "imageUrl", e.target.value)}
+                    placeholder="https://example.com/image.jpg"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor={`variant-upc-${index}`}>UPC</Label>
+                  <Input
+                    id={`variant-upc-${index}`}
+                    value={variant.upc}
+                    onChange={(e) => updateVariant(index, "upc", e.target.value)}
                     placeholder="123456789012"
                   />
                 </div>
                 <div>
-                  <Label htmlFor={`variant-image-${index}`}>Image URL</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id={`variant-image-${index}`}
-                      value={variant.imageUrl}
-                      onChange={(e) => updateVariant(index, "imageUrl", e.target.value)}
-                      placeholder="https://example.com/image.jpg"
-                    />
-                    <Button variant="outline" size="sm">
-                      <Image className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  <Label htmlFor={`variant-ean-${index}`}>EAN</Label>
+                  <Input
+                    id={`variant-ean-${index}`}
+                    value={variant.ean}
+                    onChange={(e) => updateVariant(index, "ean", e.target.value)}
+                    placeholder="1234567890123"
+                  />
                 </div>
-                <div>
-                  <Label htmlFor={`variant-asin-${index}`}>ASIN (Amazon)</Label>
+                <div className="md:col-span-2">
+                  <Label htmlFor={`variant-asin-${index}`}>ASIN</Label>
                   <Input
                     id={`variant-asin-${index}`}
                     value={variant.asin}
