@@ -42,7 +42,7 @@ export const SourcesTab = ({ formState, updateFormState, onComplete }: SourcesTa
     { value: "in_stock", label: "In Stock" },
     { value: "out_of_stock", label: "Out of Stock" },
     { value: "limited", label: "Limited Stock" },
-    { value: "pre_order", label: "Pre-Order" }
+    { value: "discontinued", label: "Discontinued" }
   ];
 
   const sourceTypeOptions = [
@@ -167,6 +167,8 @@ export const SourcesTab = ({ formState, updateFormState, onComplete }: SourcesTa
 
   const handleSubmit = async () => {
     setIsLoading(true);
+    let insertData: any[] = [];
+    
     try {
       // Check if there are any URL errors
       if (Object.keys(urlErrors).length > 0) {
@@ -192,14 +194,14 @@ export const SourcesTab = ({ formState, updateFormState, onComplete }: SourcesTa
         return;
       }
 
-      const insertData = validSources.map(source => ({
+      insertData = validSources.map(source => ({
         product_variant_id: source.variantId,
         retailer_name: source.retailerName,
         url: source.url,
         price: source.price ? parseFloat(source.price) : null,
         currency: source.currency,
-        availability: source.availability,
-        source_type: source.sourceType
+        availability: source.availability
+        // Removed source_type as it doesn't exist in the schema
       }));
 
       const { error } = await supabase
@@ -215,11 +217,12 @@ export const SourcesTab = ({ formState, updateFormState, onComplete }: SourcesTa
 
       onComplete();
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error creating product sources:", error);
+      console.error("Insert data that failed:", insertData);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to create product sources."
+        description: "Failed to create product sources. Check console for details."
       });
     } finally {
       setIsLoading(false);
