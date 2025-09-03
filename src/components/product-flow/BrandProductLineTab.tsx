@@ -37,7 +37,10 @@ export const BrandProductLineTab = ({ formState, updateFormState, onComplete }: 
   const [productLines, setProductLines] = useState<{id: string, name: string, brand_id?: string}[]>([]);
   const [filteredProductLines, setFilteredProductLines] = useState<{id: string, name: string, brand_id?: string}[]>([]);
 
-  const [speciesOptions, setSpeciesOptions] = useState<{id: string, label: string}[]>([]);
+  const speciesOptions = [
+    { id: "dog", label: "Dog" },
+    { id: "cat", label: "Cat" }
+  ];
 
   useEffect(() => {
     const fetchBrands = async () => {
@@ -67,30 +70,8 @@ export const BrandProductLineTab = ({ formState, updateFormState, onComplete }: 
       }
     };
 
-    const fetchSpecies = async () => {
-      const { data, error } = await supabase
-        .from("species")
-        .select("id, name")
-        .order("name");
-      
-      if (error) {
-        console.error("Error fetching species:", error);
-        // Fallback to default options
-        setSpeciesOptions([
-          { id: "dog", label: "Dog" },
-          { id: "cat", label: "Cat" }
-        ]);
-      } else {
-        setSpeciesOptions((data || []).map(species => ({
-          id: species.name.toLowerCase(),
-          label: species.name
-        })));
-      }
-    };
-
     fetchBrands();
     fetchProductLines();
-    fetchSpecies();
   }, []);
 
   // Filter product lines when brand selection changes

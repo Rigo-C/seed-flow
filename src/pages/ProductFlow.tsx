@@ -3,15 +3,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { ArrowRight, Package, Palette, Settings, Tag, MapPin, Check, Folder, FlaskConical, Star } from "lucide-react";
+import { ArrowRight, Package, Palette, Settings, Tag, MapPin, Check } from "lucide-react";
 import { NavigationHeader } from "@/components/NavigationHeader";
 import { BrandProductLineTab } from "@/components/product-flow/BrandProductLineTab";
-import { CategoriesTab } from "@/components/product-flow/CategoriesTab";
-import { NutritionalAnalysisTab } from "@/components/product-flow/NutritionalAnalysisTab";
 import { ProductVariantTab } from "@/components/product-flow/ProductVariantTab";
 import { ProductOptionsTab } from "@/components/product-flow/ProductOptionsTab";
 import { VariantOptionsTab } from "@/components/product-flow/VariantOptionsTab";
-import { ProductRatingTab } from "@/components/product-flow/ProductRatingTab";
 import { IngredientsTab } from "@/components/product-flow/IngredientsTab";
 import { SourcesTab } from "@/components/product-flow/SourcesTab";
 
@@ -20,7 +17,6 @@ export interface FormState {
   productLineId?: string;
   variantIds: string[];
   optionIds: string[];
-  categoryIds?: string[];
   completedTabs: string[];
   isNewProductLine?: boolean;
 }
@@ -30,7 +26,6 @@ const ProductFlow = () => {
   const [formState, setFormState] = useState<FormState>({
     variantIds: [],
     optionIds: [],
-    categoryIds: [],
     completedTabs: []
   });
 
@@ -40,18 +35,6 @@ const ProductFlow = () => {
       label: "Brand & Product Line", 
       icon: Package,
       description: "Create brand and product line"
-    },
-    { 
-      id: "categories", 
-      label: "Categories", 
-      icon: Folder,
-      description: "Assign product categories"
-    },
-    { 
-      id: "nutritional-analysis", 
-      label: "Nutrition", 
-      icon: FlaskConical,
-      description: "Add nutritional information"
     },
     { 
       id: "variants", 
@@ -70,12 +53,6 @@ const ProductFlow = () => {
       label: "Variant Options", 
       icon: Tag,
       description: "Assign options to variants"
-    },
-    { 
-      id: "rating", 
-      label: "Product Rating", 
-      icon: Star,
-      description: "Rate product aspects"
     },
     { 
       id: "ingredients", 
@@ -124,7 +101,6 @@ const ProductFlow = () => {
     setFormState({
       variantIds: [],
       optionIds: [],
-      categoryIds: [],
       completedTabs: []
     });
     setActiveTab("brand-product-line");
@@ -167,7 +143,7 @@ const ProductFlow = () => {
         {/* Main Form */}
         <Card className="shadow-elegant">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid grid-cols-9 w-full bg-muted/50">{/* Changed from grid-cols-6 to grid-cols-9 */}
+            <TabsList className="grid grid-cols-6 w-full bg-muted/50">
               {tabs.map((tab, index) => {
                 const Icon = tab.icon;
                 const isCompleted = formState.completedTabs.includes(tab.id);
@@ -205,28 +181,6 @@ const ProductFlow = () => {
                 />
               </TabsContent>
 
-              <TabsContent value="categories" className="mt-0">
-                <CategoriesTab 
-                  formState={formState}
-                  updateFormState={updateFormState}
-                  onComplete={() => {
-                    markTabCompleted("categories");
-                    goToNextTab();
-                  }}
-                />
-              </TabsContent>
-
-              <TabsContent value="nutritional-analysis" className="mt-0">
-                <NutritionalAnalysisTab 
-                  formState={formState}
-                  updateFormState={updateFormState}
-                  onComplete={() => {
-                    markTabCompleted("nutritional-analysis");
-                    goToNextTab();
-                  }}
-                />
-              </TabsContent>
-
               <TabsContent value="variants" className="mt-0">
                 <ProductVariantTab 
                   formState={formState}
@@ -255,17 +209,6 @@ const ProductFlow = () => {
                   updateFormState={updateFormState}
                   onComplete={() => {
                     markTabCompleted("variant-options");
-                    goToNextTab();
-                  }}
-                />
-              </TabsContent>
-
-              <TabsContent value="rating" className="mt-0">
-                <ProductRatingTab 
-                  formState={formState}
-                  updateFormState={updateFormState}
-                  onComplete={() => {
-                    markTabCompleted("rating");
                     goToNextTab();
                   }}
                 />
