@@ -138,6 +138,7 @@ export const IngredientsTab = ({ formState, updateFormState, onComplete }: Ingre
         .from("ingredients")
         .insert({
           name: ingredientSearch.trim(),
+          category: 'additive', // Default category - users can update later
           is_toxic: false,
           is_controversial: false,
           tags: []
@@ -242,6 +243,7 @@ export const IngredientsTab = ({ formState, updateFormState, onComplete }: Ingre
           .insert(
             newIngredientNames.map(name => ({
               name: name,
+              category: 'additive', // Default category - users can update later
               is_toxic: false,
               is_controversial: false,
               tags: []
@@ -273,10 +275,11 @@ export const IngredientsTab = ({ formState, updateFormState, onComplete }: Ingre
 
     } catch (error) {
       console.error("Error processing bulk ingredients:", error);
+      console.error("Bulk ingredients error details:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to process bulk ingredients."
+        description: "Failed to process bulk ingredients. Check console for details."
       });
     } finally {
       setIsLoading(false);
